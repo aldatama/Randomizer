@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Randomizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF1F7;--surface:#fff;--ink:#14213D;--muted:#566282;--line:#C5CEE2;--accent:#2B4EFF;--accent-ink:#fff;--hit:#FFC93C;--hit-ink:#14213D;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1530;--surface:#182046;--ink:#EAF0FF;--muted:#9AA7CC;--line:#2C376B;--accent:#7B93FF;--accent-ink:#0F1530;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F1530;--surface:#182046;--ink:#EAF0FF;--muted:#9AA7CC;--line:#2C376B;--accent:#7B93FF;--accent-ink:#0F1530;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1rem/1.5 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:28px 18px 48px}
+h1{font-size:clamp(2rem,8vw,2.8rem);line-height:1.05;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+header p{margin:0 0 22px;color:var(--muted);max-width:46ch}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:18px}
+.tabs button{min-height:44px;border:0;border-radius:10px;background:transparent;color:var(--ink);font:inherit;font-weight:600;cursor:pointer;padding:0 4px}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+label{display:block;font-weight:600;margin:0 0 6px}
+textarea,input[type=number]{width:100%;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{resize:vertical;min-height:140px}
+.muted{color:var(--muted);margin:6px 0 0;font-size:.92rem}
+.panel{margin-top:16px}
+.chk{display:flex;align-items:center;gap:10px;font-weight:400;margin:0 0 14px;min-height:32px}
+.chk input{width:20px;height:20px;accent-color:var(--accent)}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.go{display:block;width:100%;min-height:52px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:800;font-size:1.1rem;cursor:pointer;margin-top:14px}
+.go:active{transform:translateY(1px)}
+.quick{display:flex;gap:8px;margin-top:12px}
+.quick button,.bar button{min-height:44px;padding:0 16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.quick button{flex:1}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.out{margin-top:22px;min-height:96px}
+.msg{padding:14px 2px}
+.big{margin:0;padding:30px 18px;border-radius:14px;text-align:center;font-weight:800;font-size:clamp(2rem,9vw,3.6rem);line-height:1.1;overflow-wrap:anywhere}
+.hit{background:var(--hit);color:var(--hit-ink)}
+.pop{animation:pop .18s ease-out}
+@keyframes pop{from{transform:scale(.95)}to{transform:scale(1)}}
+.ord{margin:0;padding:0 0 0 1.6em;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 2.4em}
+.ord li{padding:4px 0}
+.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.team{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.team h3{margin:0 0 6px;font-size:1.05rem}
+.team ul{margin:0;padding-left:1.1em}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chips span{background:var(--hit);color:var(--hit-ink);font-weight:800;font-size:1.4rem;padding:8px 16px;border-radius:10px}
+.bar{margin-top:12px}
+#hist{margin:12px 0 0}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){.pop{animation:none}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Randomizer</h1>
+<p>Pick one, shuffle an order, split into teams, or roll numbers. Your list is saved on this device.</p>
+</header>
+
+<div class="tabs" role="tablist" aria-label="Mode">
+<button role="tab" data-t="pick" aria-selected="true">Pick</button>
+<button role="tab" data-t="order" aria-selected="false">Shuffle</button>
+<button role="tab" data-t="teams" aria-selected="false">Teams</button>
+<button role="tab" data-t="num" aria-selected="false">Numbers</button>
+</div>
+
+<section id="listBox">
+<label for="list">Your list, one item per line</label>
+<textarea id="list" placeholder="Pizza&#10;Noodles&#10;Salad"></textarea>
+<p id="count" class="muted">0 items</p>
+</section>
+
+<section class="panel" id="p-pick">
+<label class="chk"><input type="checkbox" id="rm"> Remove each pick from the list</label>
+<button class="go" id="goPick">Pick one</button>
+</section>
+
+<section class="panel" id="p-order" hidden>
+<button class="go" id="goOrder">Shuffle list</button>
+</section>
+
+<section class="panel" id="p-teams" hidden>
+<label for="tn">Number of teams</label>
+<input id="tn" type="number" min="2" value="2" inputmode="numeric">
+<button class="go" id="goTeams">Split into teams</button>
+</section>
+
+<section class="panel" id="p-num" hidden>
+<div class="row">
+<div><label for="mn">From</label><input id="mn" type="number" value="1" inputmode="numeric"></div>
+<div><label for="mx">To</label><input id="mx" type="number" value="100" inputmode="numeric"></div>
+<div><label for="ct">How many</label><input id="ct" type="number" min="1" value="1" inputmode="numeric"></div>
+</div>
+<label class="chk"><input type="checkbox" id="uq" checked> No repeated numbers</label>
+<button class="go" id="goNum">Generate</button>
+<div class="quick">
+<button data-d="coin">Flip a coin</button>
+<button data-d="6">Roll d6</button>
+<button data-d="20">Roll d20</button>
+</div>
+</section>
+
+<div id="out" class="out" aria-live="polite"></div>
+<div class="bar"><button id="copy" hidden>Copy result</button></div>
+<p id="hist" class="muted" hidden></p>
+</main>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+// Unbiased random integer in [0, n) using the browser's secure generator
+const rnd=n=>{const a=new Uint32Array(1),lim=Math.floor(4294967296/n)*n;do{crypto.getRandomValues(a)}while(a[0]>=lim);return a[0]%n};
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
+const items=()=>$('#list').value.split('\n').map(s=>s.trim()).filter(Boolean);
+const out=$('#out'),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let last='',busy=false,hist=[];
+
+function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function put(...n){out.replaceChildren(...n)}
+function done(t){last=t;$('#copy').hidden=!t}
+function note(m){put(el('p','muted msg',m));done('')}
+function count(){const n=items().length;$('#count').textContent=n+(n===1?' item':' items')}
+
+function pick(){
+  const it=items();
+  if(it.length<2)return note('Add at least two items to pick from.');
+  if(busy)return;busy=true;
+  const win=it[rnd(it.length)],big=el('p','big hit','');
+  put(big);let n=0;const steps=reduce?0:14;
+  (function tick(){
+    if(n<steps){big.textContent=it[rnd(it.length)];n++;setTimeout(tick,45+n*13);return}
+    big.textContent=win;big.classList.add('pop');busy=false;
+    hist.unshift(win);hist=hist.slice(0,6);
+    const h=$('#hist');h.hidden=hist.length<2;h.textContent='Earlier picks: '+hist.slice(1).join(', ');
+    if($('#rm').checked){
+      const lines=$('#list').value.split('\n'),i=lines.findIndex(l=>l.trim()===win);
+      if(i>-1){lines.splice(i,1);$('#list').value=lines.join('\n');store.set('rz-list',$('#list').value);count()}
+    }
+    done(win);
+  })();
+}
+
+function order(){
+  const it=items();
+  if(it.length<2)return note('Add at least two items to shuffle.');
+  const s=shuffle(it),ol=el('ol','ord');
+  s.forEach(x=>ol.append(el('li','',x)));
+  put(ol);done(s.map((x,i)=>(i+1)+'. '+x).join('\n'));
+}
+
+function teams(){
+  const it=items(),k=Math.floor(+$('#tn').value);
+  if(!(k>=2))return note('Enter at least 2 teams.');
+  if(it.length<k)return note('You need at least as many items as teams.');
+  const t=Array.from({length:k},()=>[]);
+  shuffle(it).forEach((x,i)=>t[i%k].push(x));
+  const g=el('div','teams'),txt=[];
+  t.forEach((m,i)=>{
+    const c=el('div','team');c.append(el('h3','','Team '+(i+1)));
+    const ul=el('ul');m.forEach(x=>ul.append(el('li','',x)));c.append(ul);g.append(c);
+    txt.push('Team '+(i+1)+': '+m.join(', '));
+  });
+  put(g);done(txt.join('\n'));
+}
+
+function nums(){
+  const a=Math.floor(+$('#mn').value),b=Math.floor(+$('#mx').value),c=Math.floor(+$('#ct').value),u=$('#uq').checked;
+  if(!Number.isFinite(a)||!Number.isFinite(b)||b<a)return note('“To” must be the same as or larger than “From”.');
+  const r=b-a+1;
+  if(r>1e9)return note('Use a range smaller than one billion.');
+  if(!(c>=1)||c>1000)return note('Choose between 1 and 1000 numbers.');
+  if(u&&c>r)return note('Only '+r+' different numbers fit in that range. Lower the count or allow repeats.');
+  let res=[];
+  if(u){const s=new Set();while(s.size<c)s.add(a+rnd(r));res=[...s]}
+  else for(let i=0;i<c;i++)res.push(a+rnd(r));
+  if(c===1)put(el('p','big hit',String(res[0])));
+  else{const w=el('div','chips');res.forEach(x=>w.append(el('span','',String(x))));put(w)}
+  done(res.join(', '));
+}
+
+function tab(t){
+  $$('[role=tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.t===t)));
+  ['pick','order','teams','num'].forEach(k=>$('#p-'+k).hidden=k!==t);
+  $('#listBox').hidden=t==='num';
+  note('Your result appears here.');store.set('rz-tab',t);
+}
+
+$$('[role=tab]').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+$('#goPick').onclick=pick;$('#goOrder').onclick=order;$('#goTeams').onclick=teams;$('#goNum').onclick=nums;
+$$('.quick button').forEach(b=>b.onclick=()=>{
+  const d=b.dataset.d,v=d==='coin'?(rnd(2)?'Heads':'Tails'):String(1+rnd(+d));
+  put(el('p','big hit pop',v));done(v);
+});
+$('#list').addEventListener('input',()=>{store.set('rz-list',$('#list').value);count()});
+$('#copy').onclick=async()=>{
+  const b=$('#copy');
+  try{await navigator.clipboard.writeText(last);b.textContent='Copied'}catch(e){b.textContent='Copy not available'}
+  setTimeout(()=>b.textContent='Copy result',1500);
+};
+
+$('#list').value=store.get('rz-list')||'';count();
+const t0=store.get('rz-tab');tab(['pick','order','teams','num'].includes(t0)?t0:'pick');
+})();
+</script>
+</body>
+</html>
